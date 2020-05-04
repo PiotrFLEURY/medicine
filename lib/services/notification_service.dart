@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:medicine/model/reminder.dart';
 
 const DAILY_NOTIFICATION_CHANNEL = 'DAILY_NOTIFICATION_CHANNEL';
 
@@ -50,8 +51,8 @@ class NotificationService {
     // MORE STUFF HERE
   }
 
-  void scheduleDailyNotifications(
-      int id, String title, String text, TimeOfDay timeOfDay) async {
+  void scheduleDailyNotifications(int id, String title, String text,
+      TimeOfDay timeOfDay, String payload) async {
     var time = Time(timeOfDay.hour, timeOfDay.minute, 0);
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
         DAILY_NOTIFICATION_CHANNEL,
@@ -66,10 +67,34 @@ class NotificationService {
       text,
       time,
       platformChannelSpecifics,
+      payload: payload,
     );
   }
 
   Future<List<PendingNotificationRequest>> getPending() async {
     return flutterLocalNotificationsPlugin.pendingNotificationRequests();
+  }
+
+  Future<bool> isPending(id) async {
+    return (await getPending()).any((element) => element.id == id) != null;
+  }
+
+  void scheduleNotification(Reminder reminder) {
+    scheduleDailyNotifications(
+      reminder.id,
+      "Reminder",
+      "Don't forget to take your ${reminder.label}",
+      reminder.timeOfDay,
+      reminder.toJson(),
+    );
+  }
+
+  void replaceSchedule(Reminder reminder) {
+    cancel(reminder);
+    scheduleNotification(reminder);
+  }
+
+  void cancel(Reminder reminder) {
+    flutterLocalNotificationsPlugin.cancel(reminder.id);
   }
 }

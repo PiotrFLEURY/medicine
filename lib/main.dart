@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:medicine/model/reminder.dart';
@@ -45,6 +46,25 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   List<Reminder> _reminders = [];
 
+  NotificationService notificationService = getIt.get<NotificationService>();
+
+  @override
+  void initState() {
+    super.initState();
+    _initReminder();
+  }
+
+  Future<void> _initReminder() async {
+    List<PendingNotificationRequest> pendingRequests =
+        await notificationService.getPending();
+
+    List<Reminder> reminders =
+        pendingRequests.map((e) => Reminder.fromJson(e.payload)).toList();
+    setState(() {
+      _reminders = reminders;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,17 +78,20 @@ class _MainPageState extends State<MainPage> {
             child: Column(
               children: <Widget>[
                 Padding(
-                  padding: const EdgeInsets.all(48.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Image.asset(
                     'assets/images/app_icon.png',
                     height: 96.0,
                   ),
                 ),
-                Text(
-                  "Medicine reminder",
-                  style: TextStyle(
-                    fontSize: 32,
-                    color: Theme.of(context).primaryColor,
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    "Medicine reminder",
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Theme.of(context).primaryColor,
+                    ),
                   ),
                 ),
                 Padding(
@@ -76,14 +99,10 @@ class _MainPageState extends State<MainPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
-                      Icon(
-                        Icons.calendar_today,
-                        color: Colors.blueGrey,
-                      ),
                       Text(
                         "Scheduled",
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 16,
                           color: Colors.blueGrey,
                         ),
                       ),
@@ -138,38 +157,30 @@ class _MainPageState extends State<MainPage> {
             width: 200,
             child: Material(
               elevation: 8.0,
-              borderRadius: BorderRadius.circular(16.0),
+              borderRadius: BorderRadius.circular(8.0),
               color: Colors.white,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  InkWell(
-                    onTap: () => _editReminder(reminder),
-                    borderRadius: BorderRadius.circular(16.0),
-                    child: Container(
-                      height: 48.0,
-                      width: 48.0,
-                      child: Icon(
-                        Icons.edit,
-                        color: Colors.blueGrey,
+              child: InkWell(
+                onTap: () => _editReminder(reminder),
+                borderRadius: BorderRadius.circular(8.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: <Widget>[
+                    Text(
+                      reminder.pills.toString(),
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontSize: 24,
                       ),
                     ),
-                  ),
-                  Text(
-                    reminder.pills.toString(),
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontSize: 24,
+                    Text(
+                      reminder.label,
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
-                  Text(
-                    reminder.label,
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  Text(reminder.timeOfDay.format(context)),
-                ],
+                    Text(reminder.timeOfDay.format(context)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -179,16 +190,24 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _editReminder(Reminder reminder) async {
-    Navigator.pushNamed(
+    var result = await Navigator.pushNamed(
       context,
       EditReminder.routeName,
       arguments: reminder,
     );
+    if (result != null) {
+      notificationService.replaceSchedule(result);
+      setState(() {
+        _reminders.remove(reminder);
+        _reminders.add(result);
+      });
+    }
   }
 
   void _deleteReminder(Reminder reminder) async {
     setState(() {
       _reminders.remove(reminder);
+      notificationService.cancel(reminder);
     });
   }
 
@@ -225,12 +244,7 @@ class _MainPageState extends State<MainPage> {
     );
     if (result != null) {
       Reminder newReminder = result;
-      GetIt.instance.get<NotificationService>().scheduleDailyNotifications(
-            newReminder.id,
-            "Reminder",
-            "Don't forget to take your ${newReminder.label}",
-            newReminder.timeOfDay,
-          );
+      notificationService.scheduleNotification(newReminder);
       setState(() {
         _reminders.add(newReminder);
       });

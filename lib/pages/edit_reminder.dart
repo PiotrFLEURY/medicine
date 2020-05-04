@@ -38,19 +38,56 @@ class _EditReminderState extends State<EditReminder> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
+                  Text('Edit your reminder'),
                   TextField(
+                    decoration: InputDecoration(
+                      suffixIcon: Icon(Icons.label),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
                     controller: _labelController,
                   ),
                   TextField(
+                    decoration: InputDecoration(
+                      suffixIcon: Icon(Icons.mode_edit),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
                     controller: _pillsController,
                     keyboardType: TextInputType.number,
                   ),
-                  InkWell(
-                    onTap: () => _pickDateTime(context),
-                    child: Text(
-                      _reminder.timeOfDay.format(context),
-                      style: TextStyle(
-                        fontSize: 24.0,
+                  Container(
+                    width: double.infinity,
+                    height: 64.0,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        style: BorderStyle.solid,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () => _pickDateTime(context),
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _reminder.timeOfDay.format(context),
+                              style: TextStyle(
+                                fontSize: 16.0,
+                              ),
+                            ),
+                            Icon(
+                              Icons.access_time,
+                              color: Colors.grey,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
