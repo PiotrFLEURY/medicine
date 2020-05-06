@@ -25,8 +25,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        primarySwatch: Colors.pink,
-        textTheme: GoogleFonts.openSansTextTheme(),
+        primarySwatch: Colors.blue,
+        textTheme: GoogleFonts.telexTextTheme(),
       ),
       initialRoute: MainPage.routeName,
       routes: {
@@ -115,11 +115,24 @@ class _MainPageState extends State<MainPage> {
                 ),
                 Expanded(
                   flex: 1,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: List.generate(_reminders.length, (index) {
-                      return _buildTile(_reminders[index]);
-                    }),
+                  child: Stack(
+                    children: <Widget>[
+                      Center(
+                        child: Text(
+                          _reminders.length == 0 ? "Press + button to add" : "",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: List.generate(_reminders.length, (index) {
+                          return _buildTile(_reminders[index]);
+                        }),
+                      ),
+                    ],
                   ),
                 ),
                 Text(
