@@ -5,17 +5,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:medicine/model/reminder.dart';
 import 'package:medicine/pages/edit_reminder.dart';
 import 'package:medicine/services/notification_service.dart';
+import 'package:medicine/services/setup/services_setup.dart';
 
 void main() {
-  setup();
+  setupServices();
   runApp(MyApp());
 }
 
 final getIt = GetIt.instance;
-
-void setup() {
-  getIt.registerSingleton<NotificationService>(NotificationService());
-}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -23,7 +20,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     getIt.get<NotificationService>().init(context);
     return MaterialApp(
-      title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         textTheme: GoogleFonts.telexTextTheme(),
@@ -58,8 +54,9 @@ class _MainPageState extends State<MainPage> {
     List<PendingNotificationRequest> pendingRequests =
         await notificationService.getPending();
 
-    List<Reminder> reminders =
-        pendingRequests.map((e) => Reminder.fromJson(e.payload)).toList();
+    List<Reminder> reminders = pendingRequests != null
+        ? pendingRequests.map((e) => Reminder.fromJson(e.payload)).toList()
+        : List();
     setState(() {
       _reminders = reminders;
     });
@@ -88,6 +85,7 @@ class _MainPageState extends State<MainPage> {
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
                     "Medicine reminder",
+                    key: Key("main_title"),
                     style: TextStyle(
                       fontSize: 24,
                       color: Theme.of(context).primaryColor,
