@@ -12,14 +12,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build project
-        uses: actions/setup-java@v1
-          with:
+      - uses: actions/setup-java@v1
+        with:
             java-version: '12.x'
-        uses: subosito/flutter-action@v1
-          with:
-            flutter-version: '1.17'
-        run: flutter pub get
-        run: flutter build apk
+      - uses: subosito/flutter-action@v1
+        with:
+          flutter-version: '1.17'
+      - run: flutter pub get
+      - run: flutter build apk
       - name: Create Github Release
         id: create_release
         uses: actions/create-release@v1
