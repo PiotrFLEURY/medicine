@@ -1,6 +1,7 @@
-on: push
-  branches:
-    - '*'
+on: 
+  push:
+    branches:
+      - '*'
 name: Test and Build apk
 jobs:
   build:
