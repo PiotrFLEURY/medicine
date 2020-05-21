@@ -1,8 +1,12 @@
-on: push
-name: Test and Build apk
+name: Releases
+
+on: 
+  push:
+    tags:
+    - '*'
+
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -15,3 +19,8 @@ jobs:
     - run: flutter pub get
     - run: flutter test
     - run: flutter build apk
+    - name: Create a Release APK
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "build/app/outputs/apk/debug/*.apk"
+        token: ${{ secrets.TOKEN }}
