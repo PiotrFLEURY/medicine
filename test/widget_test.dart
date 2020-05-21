@@ -10,8 +10,6 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(MyApp());
 
-    debugDumpApp();
-
     // Verify that our counter starts at 0.
     expect(find.byKey(Key('main_title')), findsOneWidget);
   });
