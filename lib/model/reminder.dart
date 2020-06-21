@@ -7,6 +7,7 @@ class Reminder {
   int pills = 0;
   String label;
   TimeOfDay timeOfDay;
+  bool deleted = false;
 
   Reminder(this.id, {this.pills, this.label, this.timeOfDay});
 

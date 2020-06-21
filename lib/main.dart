@@ -6,6 +6,7 @@ import 'package:medicine/model/reminder.dart';
 import 'package:medicine/pages/edit_reminder.dart';
 import 'package:medicine/services/notification_service.dart';
 import 'package:medicine/services/setup/services_setup.dart';
+import 'package:medicine/widgets/reminder_widget.dart';
 
 void main() {
   setupServices();
@@ -41,8 +42,11 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   List<Reminder> _reminders = [];
+  int _currentPage = 0;
 
   NotificationService notificationService = getIt.get<NotificationService>();
+
+  PageController _pageController = PageController();
 
   @override
   void initState() {
@@ -66,135 +70,124 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints.expand(
-              height: MediaQuery.of(context).size.height,
-              width: MediaQuery.of(context).size.width,
-            ),
-            child: Column(
+        child: Column(
+          children: <Widget>[
+            Row(
               children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Image.asset(
-                    'assets/images/app_icon.png',
-                    height: 96.0,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Medicine reminder",
-                    key: Key("main_title"),
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Theme.of(context).primaryColor,
+                Expanded(
+                  flex: 12,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: 56.0,
+                        maxWidth: double.infinity,
+                      ),
+                      child: Row(
+                        children: List.generate(
+                          _reminders.length,
+                          (index) {
+                            var reminder = _reminders[index];
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _currentPage = index;
+                                  _pageController.animateToPage(_currentPage,
+                                      duration: Duration(milliseconds: 400),
+                                      curve: Curves.decelerate);
+                                });
+                              },
+                              child: Container(
+                                height: double.infinity,
+                                width: 100,
+                                padding: EdgeInsets.all(16.0),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  reminder.label,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    color: _currentPage == index
+                                        ? Colors.blue
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Text(
-                        "Scheduled",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.blueGrey,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.add),
-                        onPressed: () => _addReminder(context),
-                      ),
-                    ],
-                  ),
-                ),
                 Expanded(
-                  flex: 1,
-                  child: Stack(
-                    children: <Widget>[
-                      Center(
-                        child: Text(
-                          _reminders.length == 0 ? "Press + button to add" : "",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                      ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: List.generate(_reminders.length, (index) {
-                          return _buildTile(_reminders[index]);
-                        }),
-                      ),
-                    ],
+                  flex: 2,
+                  child: Container(
+                    height: 56.0,
+                    width: 56.0,
+                    color: Colors.grey[100],
+                    child: IconButton(
+                      icon: Icon(Icons.add),
+                      color: Colors.grey,
+                      onPressed: () => _addReminder(context),
+                    ),
                   ),
-                ),
-                Text(
-                  "History",
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: Colors.grey,
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Text("TODO"),
                 ),
               ],
             ),
-          ),
+            Container(
+              alignment: Alignment.center,
+              color: Colors.grey[200],
+              padding: EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Scheduled notifications",
+                    style: TextStyle(
+                      color: Colors.black.withAlpha(150),
+                    ),
+                  ),
+                  Icon(
+                    Icons.schedule,
+                    color: Colors.blue,
+                  )
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Stack(
+                children: <Widget>[
+                  _buildEmptyScreen(),
+                  PageView(
+                    controller: _pageController,
+                    children: List.generate(_reminders.length, (index) {
+                      var reminder = _reminders[index];
+                      return ReminderWidget(
+                        reminder: reminder,
+                        onTap: () => _editReminder(reminder),
+                        onDelete: () => _deleteReminder(reminder),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
-  Widget _buildTile(Reminder reminder) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Dismissible(
-        key: Key(reminder.toString()),
-        direction: DismissDirection.up,
-        confirmDismiss: (direction) => _confirmDismiss(context),
-        onDismissed: (direction) => _deleteReminder(reminder),
-        child: Hero(
-          tag: reminder.id,
-          child: Container(
-            height: 200,
-            width: 200,
-            child: Material(
-              elevation: 8.0,
-              borderRadius: BorderRadius.circular(8.0),
-              color: Colors.white,
-              child: InkWell(
-                onTap: () => _editReminder(reminder),
-                borderRadius: BorderRadius.circular(8.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    Text(
-                      reminder.pills.toString(),
-                      style: TextStyle(
-                        color: Theme.of(context).primaryColor,
-                        fontSize: 24,
-                      ),
-                    ),
-                    Text(
-                      reminder.label,
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
-                    ),
-                    Text(reminder.timeOfDay.format(context)),
-                  ],
-                ),
-              ),
-            ),
-          ),
+  Center _buildEmptyScreen() {
+    return Center(
+      child: Text(
+        _reminders.length == 0 ? "Press + button to add" : "",
+        style: TextStyle(
+          color: Colors.grey,
+          fontSize: 18,
         ),
       ),
     );
@@ -207,11 +200,15 @@ class _MainPageState extends State<MainPage> {
       arguments: reminder,
     );
     if (result != null) {
-      notificationService.replaceSchedule(result);
-      setState(() {
-        _reminders.remove(reminder);
-        _reminders.add(result);
-      });
+      if ((result as Reminder).deleted) {
+        _deleteReminder(result);
+      } else {
+        notificationService.replaceSchedule(result);
+        setState(() {
+          _reminders.remove(reminder);
+          _reminders.add(result);
+        });
+      }
     }
   }
 
@@ -220,25 +217,6 @@ class _MainPageState extends State<MainPage> {
       _reminders.remove(reminder);
       notificationService.cancel(reminder);
     });
-  }
-
-  Future<bool> _confirmDismiss(context) async {
-    return await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: Text('Are you sure ?'),
-        actions: <Widget>[
-          FlatButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text('yes'),
-          ),
-          FlatButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('no'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _addReminder(BuildContext context) async {
