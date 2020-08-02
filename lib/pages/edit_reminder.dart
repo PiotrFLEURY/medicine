@@ -27,6 +27,26 @@ class _EditReminderState extends State<EditReminder> {
 
     return SafeArea(
       child: Scaffold(
+        appBar: AppBar(
+          actions: <Widget>[
+            IconButton(
+              padding: EdgeInsets.all(8.0),
+              icon: Icon(
+                Icons.delete,
+                color: Colors.white,
+              ),
+              onPressed: () => _delete(context),
+            ),
+            IconButton(
+              padding: EdgeInsets.all(8.0),
+              icon: Icon(
+                Icons.check,
+                color: Colors.white,
+              ),
+              onPressed: () => _validate(context),
+            ),
+          ],
+        ),
         body: Container(
           height: double.infinity,
           width: double.infinity,
@@ -80,27 +100,6 @@ class _EditReminderState extends State<EditReminder> {
                           ],
                         ),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          padding: EdgeInsets.all(8.0),
-                          icon: Icon(
-                            Icons.delete,
-                            color: Colors.red,
-                          ),
-                          onPressed: () => _delete(context),
-                        ),
-                        IconButton(
-                          padding: EdgeInsets.all(8.0),
-                          icon: Icon(Icons.check, color: Colors.green),
-                          onPressed: () => _validate(context),
-                        ),
-                      ],
                     ),
                   ),
                 ],

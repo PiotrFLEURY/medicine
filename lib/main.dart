@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:medicine/model/reminder.dart';
+import 'package:medicine/model/took.dart';
 import 'package:medicine/pages/edit_reminder.dart';
+import 'package:medicine/pages/history.dart';
+import 'package:medicine/services/history_service.dart';
 import 'package:medicine/services/notification_service.dart';
+import 'package:medicine/services/reminder_service.dart';
 import 'package:medicine/services/setup/services_setup.dart';
 import 'package:medicine/widgets/reminder_widget.dart';
 
@@ -22,7 +25,9 @@ class MyApp extends StatelessWidget {
     getIt.get<NotificationService>().init(context);
     return MaterialApp(
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.blueGrey,
+        primaryColor: Colors.blueGrey[900],
+        accentColor: Colors.blueGrey[600],
         textTheme: GoogleFonts.telexTextTheme(),
       ),
       initialRoute: MainPage.routeName,
@@ -41,150 +46,192 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  List<Reminder> _reminders = [];
   int _currentPage = 0;
+  final _pageController = PageController();
 
   NotificationService notificationService = getIt.get<NotificationService>();
-
-  PageController _pageController = PageController();
+  ReminderService reminderService = getIt.get<ReminderService>();
+  HistoryService historyService = getIt.get<HistoryService>();
 
   @override
   void initState() {
     super.initState();
-    _initReminder();
-  }
-
-  Future<void> _initReminder() async {
-    List<PendingNotificationRequest> pendingRequests =
-        await notificationService.getPending();
-
-    List<Reminder> reminders = pendingRequests != null
-        ? pendingRequests.map((e) => Reminder.fromJson(e.payload)).toList()
-        : List();
-    setState(() {
-      _reminders = reminders;
+    _pageController.addListener(() {
+      final page = _pageController.page > 0.5 ? 1 : 0;
+      if (page != _currentPage) {
+        setState(() {
+          _currentPage = page;
+        });
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  flex: 12,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: 56.0,
-                        maxWidth: double.infinity,
-                      ),
-                      child: Row(
-                        children: List.generate(
-                          _reminders.length,
-                          (index) {
-                            var reminder = _reminders[index];
-                            return InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _currentPage = index;
-                                  _pageController.animateToPage(_currentPage,
-                                      duration: Duration(milliseconds: 400),
-                                      curve: Curves.decelerate);
-                                });
-                              },
-                              child: Container(
-                                height: double.infinity,
-                                width: 100,
-                                padding: EdgeInsets.all(16.0),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  reminder.label,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    color: _currentPage == index
-                                        ? Colors.blue
-                                        : Colors.grey,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    height: 56.0,
-                    width: 56.0,
-                    color: Colors.grey[100],
-                    child: IconButton(
-                      icon: Icon(Icons.add),
-                      color: Colors.grey,
-                      onPressed: () => _addReminder(context),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              alignment: Alignment.center,
-              color: Colors.grey[200],
-              padding: EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Scheduled notifications",
-                    style: TextStyle(
-                      color: Colors.black.withAlpha(150),
-                    ),
-                  ),
-                  Icon(
-                    Icons.schedule,
-                    color: Colors.blue,
-                  )
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Stack(
-                children: <Widget>[
-                  _buildEmptyScreen(),
-                  PageView(
-                    controller: _pageController,
-                    children: List.generate(_reminders.length, (index) {
-                      var reminder = _reminders[index];
-                      return ReminderWidget(
-                        reminder: reminder,
-                        onTap: () => _editReminder(reminder),
-                        onDelete: () => _deleteReminder(reminder),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      backgroundColor: Colors.blueGrey[900],
+      appBar: AppBar(
+        title: Text(
+          "Scheduled notifications",
         ),
+        centerTitle: true,
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.add),
+            onPressed: () => _addReminder(context),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Material(
+          elevation: 8.0,
+          borderRadius: BorderRadius.circular(8.0),
+          color: Colors.blueGrey[600],
+          child: Stack(
+            children: <Widget>[
+              AnimatedContainer(
+                height: 48.0,
+                duration: Duration(milliseconds: 400),
+                curve: Curves.decelerate,
+                alignment: _currentPage == 0
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                child: Container(
+                  width: (MediaQuery.of(context).size.width / 2) - 16.0,
+                  decoration: BoxDecoration(
+                    color: Colors.blueGrey[400],
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  Expanded(
+                    flex: 1,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.list,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        _pageController.animateToPage(0,
+                            duration: Duration(milliseconds: 400),
+                            curve: Curves.decelerate);
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.history,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        _pageController.animateToPage(1,
+                            duration: Duration(milliseconds: 400),
+                            curve: Curves.decelerate);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: PageView(
+        controller: _pageController,
+        children: <Widget>[
+          FutureBuilder(
+            future: reminderService.getPendingReminders(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return _buildEmptyScreen();
+              }
+              List<Reminder> _reminders = snapshot.data;
+              return ListView(
+                children: List.generate(_reminders.length, (index) {
+                  var reminder = _reminders[index];
+                  return Dismissible(
+                    key: Key(reminder.id.toString()),
+                    direction: DismissDirection.endToStart,
+                    confirmDismiss: (direction) async =>
+                        _confirmDismiss(context, reminder),
+                    onDismissed: (direction) => _deleteReminder(reminder),
+                    child: ReminderWidget(
+                      reminder: reminder,
+                      onTap: () => _editReminder(reminder),
+                      onTake: () => _onTake(context, reminder),
+                      onDelete: () => _deleteReminder(reminder),
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
+          History(),
+        ],
       ),
       // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
+  _onTake(BuildContext context, Reminder reminder) {
+    final time = DateTime.now();
+    historyService.add(Took(reminder.id, time));
+    Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text("${reminder.label} took at ${time.toIso8601String()}")));
+  }
+
+  Future<bool> _confirmDismiss(context, reminder) {
+    return showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return Container(
+            height: 100,
+            padding: EdgeInsets.all(16.0),
+            width: double.infinity,
+            color: Colors.blueGrey[600],
+            child: Column(
+              children: <Widget>[
+                Text(
+                  "Are you sure ?",
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    color: Colors.white,
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: FlatButton(
+                          child: Text("No"),
+                          onPressed: () => Navigator.pop(context, false),
+                        ),
+                      ),
+                      Expanded(
+                        child: FlatButton(
+                          child: Text("Yes"),
+                          onPressed: () => Navigator.pop(context, true),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          );
+        });
+  }
+
   Center _buildEmptyScreen() {
     return Center(
       child: Text(
-        _reminders.length == 0 ? "Press + button to add" : "",
+        "Press + button to add",
         style: TextStyle(
           color: Colors.grey,
           fontSize: 18,
@@ -205,8 +252,7 @@ class _MainPageState extends State<MainPage> {
       } else {
         notificationService.replaceSchedule(result);
         setState(() {
-          _reminders.remove(reminder);
-          _reminders.add(result);
+          reminderService.replaceReminder(reminder, result);
         });
       }
     }
@@ -214,8 +260,7 @@ class _MainPageState extends State<MainPage> {
 
   void _deleteReminder(Reminder reminder) async {
     setState(() {
-      _reminders.remove(reminder);
-      notificationService.cancel(reminder);
+      reminderService.remove(reminder);
     });
   }
 
@@ -225,7 +270,7 @@ class _MainPageState extends State<MainPage> {
       context,
       EditReminder.routeName,
       arguments: new Reminder(
-        _uniqueId(),
+        reminderService.uniqueId(),
         label: "",
         pills: 0,
         timeOfDay: new TimeOfDay(hour: 0, minute: 00),
@@ -233,20 +278,9 @@ class _MainPageState extends State<MainPage> {
     );
     if (result != null) {
       Reminder newReminder = result;
-      notificationService.scheduleNotification(newReminder);
       setState(() {
-        _reminders.add(newReminder);
+        reminderService.add(newReminder);
       });
     }
-  }
-
-  int _uniqueId() {
-    int maxId = _reminders.isEmpty
-        ? 1
-        : _reminders
-            .map((it) => it.id)
-            .toList()
-            .reduce((current, next) => current > next ? current : next);
-    return maxId + 1;
   }
 }
